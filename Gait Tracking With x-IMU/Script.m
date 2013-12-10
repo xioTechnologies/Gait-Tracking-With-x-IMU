@@ -2,7 +2,7 @@ clear;
 close all;
 clc;
 addpath('Quaternions');
-addpath('xIMUclasses');
+addpath('ximu_matlab_library');
 
 % -------------------------------------------------------------------------
 % Select dataset (comment in/out)
@@ -24,13 +24,13 @@ stopTime = 26;
 
 samplePeriod = 1/256;
 xIMUdata = xIMUdataClass(filePath, 'InertialMagneticSampleRate', 1/samplePeriod);
-time = xIMUdata.CalInertialMagneticData.Time;
-gyrX = xIMUdata.CalInertialMagneticData.Gyroscope.X;
-gyrY = xIMUdata.CalInertialMagneticData.Gyroscope.Y;
-gyrZ = xIMUdata.CalInertialMagneticData.Gyroscope.Z;
-accX = xIMUdata.CalInertialMagneticData.Accelerometer.X;
-accY = xIMUdata.CalInertialMagneticData.Accelerometer.Y;
-accZ = xIMUdata.CalInertialMagneticData.Accelerometer.Z;
+time = xIMUdata.CalInertialAndMagneticData.Time;
+gyrX = xIMUdata.CalInertialAndMagneticData.Gyroscope.X;
+gyrY = xIMUdata.CalInertialAndMagneticData.Gyroscope.Y;
+gyrZ = xIMUdata.CalInertialAndMagneticData.Gyroscope.Z;
+accX = xIMUdata.CalInertialAndMagneticData.Accelerometer.X;
+accY = xIMUdata.CalInertialAndMagneticData.Accelerometer.Y;
+accZ = xIMUdata.CalInertialAndMagneticData.Accelerometer.Z;
 clear('xIMUdata');
 
 % -------------------------------------------------------------------------
@@ -149,6 +149,8 @@ hold off;
 % -------------------------------------------------------------------------
 % Compute translational velocities
 
+acc(:,3) = acc(:,3) - 9.81;
+
 % Integrate acceleration to yield velocity
 vel = zeros(size(acc));
 for t = 2:length(vel)
@@ -157,6 +159,7 @@ for t = 2:length(vel)
         vel(t,:) = [0 0 0];     % force zero velocity when foot stationary
     end
 end
+
 
 % Compute integral drift during non-stationary periods
 velDrift = zeros(size(vel));
