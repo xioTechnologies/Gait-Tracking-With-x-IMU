@@ -1,4 +1,4 @@
-function fig = SixDOFanimation(varargin)
+function fig = SixDoFanimation(varargin)
 
     %% Create local variables
 
@@ -95,7 +95,9 @@ function fig = SixDOFanimation(varargin)
         set(fig, 'Position', Position);
     end
     set(gca, 'drawmode', 'fast');
-    lighting phong;
+	if ~exist ('OCTAVE_VERSION', 'builtin')	%Octave 3.6.4 does not implement lighting
+		lighting phong;
+	end
     set(gcf, 'Renderer', 'zbuffer');
     hold on;
     axis equal;
@@ -149,9 +151,9 @@ function fig = SixDOFanimation(varargin)
     else
         ShowArrowHeadStr = 'off';
     end
-    quivXhandle = quiver3(ox, oy, oz, ux, vx, wx,  'r', 'ShowArrowHead', ShowArrowHeadStr, 'MaxHeadSize', 0.999999, 'AutoScale', 'off');
-    quivYhandle = quiver3(ox, oy, oz, uy, vy, wy,  'g', 'ShowArrowHead', ShowArrowHeadStr, 'MaxHeadSize', 0.999999, 'AutoScale', 'off');
-    quivZhandle = quiver3(ox, ox, oz, uz, vz, wz,  'b', 'ShowArrowHead', ShowArrowHeadStr, 'MaxHeadSize', 0.999999, 'AutoScale', 'off');
+    quivXhandle = quiver3(ox, oy, oz, ux, vx, wx,  'color',[1 0 0], 'ShowArrowHead', ShowArrowHeadStr, 'MaxHeadSize', 0.999999, 'AutoScale', 'off');
+    quivYhandle = quiver3(ox, oy, oz, uy, vy, wy,  'color',[0 1 0], 'ShowArrowHead', ShowArrowHeadStr, 'MaxHeadSize', 0.999999, 'AutoScale', 'off');
+    quivZhandle = quiver3(ox, ox, oz, uz, vz, wz,  'color',[0 0 1], 'ShowArrowHead', ShowArrowHeadStr, 'MaxHeadSize', 0.999999, 'AutoScale', 'off');
 
     % Create legend
     if(ShowLegend)
