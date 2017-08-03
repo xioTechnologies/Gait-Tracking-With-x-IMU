@@ -87,7 +87,7 @@ function fig = SixDOFanimation(varargin)
     %% Setup figure and plot
 
     % Create figure
-    fig = figure('Number', 'off', 'Name', '6DOF Animation');
+    fig = figure('NumberTitle', 'off', 'Name', '6DOF Animation');
     if(FullScreen)
         screenSize = get(0, 'ScreenSize');
         set(fig, 'Position', [0 0 screenSize(3) screenSize(4)]);
