@@ -3,11 +3,21 @@ close all;
 clc;
 addpath('Quaternions');
 addpath('ximu_matlab_library');
+%OCTAVE 3.6.4 couldn't handle some of the Matlab features used in the script (e.g. class declarations -> ximu_matlab_library didn't work)
+%Modified the code to enable running it with Octave on Windows platform
+%OCTAVE
+if exist ('OCTAVE_VERSION', 'builtin') 
+	addpath('AHRS_Octave');
+end
 
 % -------------------------------------------------------------------------
 % Select dataset (comment in/out)
-
-filePath = 'Datasets/straightLine';
+%OCTAVE
+if exist ('OCTAVE_VERSION', 'builtin') 
+	filePath = 'Datasets/straightLine_CalInertialAndMag.csv';
+else
+	filePath = 'Datasets/straightLine';
+end 
 startTime = 6;
 stopTime = 26;
 
@@ -23,16 +33,26 @@ stopTime = 26;
 % Import data
 
 samplePeriod = 1/256;
-xIMUdata = xIMUdataClass(filePath, 'InertialMagneticSampleRate', 1/samplePeriod);
-time = xIMUdata.CalInertialAndMagneticData.Time;
-gyrX = xIMUdata.CalInertialAndMagneticData.Gyroscope.X;
-gyrY = xIMUdata.CalInertialAndMagneticData.Gyroscope.Y;
-gyrZ = xIMUdata.CalInertialAndMagneticData.Gyroscope.Z;
-accX = xIMUdata.CalInertialAndMagneticData.Accelerometer.X;
-accY = xIMUdata.CalInertialAndMagneticData.Accelerometer.Y;
-accZ = xIMUdata.CalInertialAndMagneticData.Accelerometer.Z;
+if exist ('OCTAVE_VERSION', 'builtin') 
+	xIMUdata = dlmread(filePath,',',1,0);
+	time = xIMUdata(:,1)*samplePeriod;
+	gyrX = xIMUdata(:,2);
+	gyrY = xIMUdata(:,3);
+	gyrZ = xIMUdata(:,4);
+	accX = xIMUdata(:,5);
+	accY = xIMUdata(:,6);
+	accZ = xIMUdata(:,7);
+else
+	xIMUdata = xIMUdataClass(filePath, 'InertialMagneticSampleRate', 1/samplePeriod);
+	time = xIMUdata.CalInertialAndMagneticData.Time;
+	gyrX = xIMUdata.CalInertialAndMagneticData.Gyroscope.X;
+	gyrY = xIMUdata.CalInertialAndMagneticData.Gyroscope.Y;
+	gyrZ = xIMUdata.CalInertialAndMagneticData.Gyroscope.Z;
+	accX = xIMUdata.CalInertialAndMagneticData.Accelerometer.X;
+	accY = xIMUdata.CalInertialAndMagneticData.Accelerometer.Y;
+	accZ = xIMUdata.CalInertialAndMagneticData.Accelerometer.Z;
+end 
 clear('xIMUdata');
-
 % -------------------------------------------------------------------------
 % Manually frame data
 
@@ -90,36 +110,60 @@ ax(2) = subplot(2,1,2);
     plot(time, accY, 'g');
     plot(time, accZ, 'b');
     plot(time, acc_magFilt, ':k');
-    plot(time, stationary, 'k', 'LineWidth', 2);
+    plot(time, double(stationary), 'k', 'LineWidth', 2);	%Octave couldn't plot booleans
     title('Accelerometer');
     xlabel('Time (s)');
     ylabel('Acceleration (g)');
     legend('X', 'Y', 'Z', 'Filtered', 'Stationary');
     hold off;
-linkaxes(ax,'x');
+
+if ~exist ('OCTAVE_VERSION', 'builtin')
+	linkaxes(ax,'x');	%Octave 3.6.4 had not implemented linkaxes
+end
 
 % -------------------------------------------------------------------------
 % Compute orientation
 
 quat = zeros(length(time), 4);
-AHRSalgorithm = AHRS('SamplePeriod', 1/256, 'Kp', 1, 'KpInit', 1);
-
 % Initial convergence
 initPeriod = 2;
 indexSel = 1 : find(sign(time-(time(1)+initPeriod))+1, 1);
-for i = 1:2000
-    AHRSalgorithm.UpdateIMU([0 0 0], [mean(accX(indexSel)) mean(accY(indexSel)) mean(accZ(indexSel))]);
-end
 
-% For all data
-for t = 1:length(time)
-    if(stationary(t))
-        AHRSalgorithm.Kp = 0.5;
-    else
-        AHRSalgorithm.Kp = 0;
-    end
-    AHRSalgorithm.UpdateIMU(deg2rad([gyrX(t) gyrY(t) gyrZ(t)]), [accX(t) accY(t) accZ(t)]);
-    quat(t,:) = AHRSalgorithm.Quaternion;
+if ~exist ('OCTAVE_VERSION', 'builtin')
+	AHRSalgorithm = AHRS('SamplePeriod', 1/256, 'Kp', 1, 'KpInit', 1);
+	for i = 1:2000
+		AHRSalgorithm.UpdateIMU([0 0 0], [mean(accX(indexSel)) mean(accY(indexSel)) mean(accZ(indexSel))]);
+	end
+
+	% For all data
+	for t = 1:length(time)
+		if(stationary(t))
+			AHRSalgorithm.Kp = 0.5;
+		else
+			AHRSalgorithm.Kp = 0;
+		end
+		AHRSalgorithm.UpdateIMU(deg2rad([gyrX(t) gyrY(t) gyrZ(t)]), [accX(t) accY(t) accZ(t)]);
+		quat(t,:) = AHRSalgorithm.Quaternion;
+	end
+else	%classdef wasn't implemented in Octave 3.6.4
+	AHRSStruct = AHRS_Octave('SamplePeriod', 1/256, 'Kp', 1, 'KpInit', 1);
+	% Initial convergence
+	initPeriod = 2;
+	indexSel = 1 : find(sign(time-(time(1)+initPeriod))+1, 1);
+	for i = 1:2000
+		AHRSStruct = UpdateIMU(AHRSStruct,[0 0 0], [mean(accX(indexSel)) mean(accY(indexSel)) mean(accZ(indexSel))]);
+	end
+
+	% For all data
+	for t = 1:length(time)
+		if(stationary(t))
+			AHRSStruct.Kp = 0.5;
+		else
+			AHRSStruct.Kp = 0;
+		end
+		AHRSStruct = UpdateIMU(AHRSStruct,deg2rad([gyrX(t) gyrY(t) gyrZ(t)]), [accX(t) accY(t) accZ(t)]);
+		quat(t,:) = AHRSStruct.Quaternion;
+	end
 end
 
 % -------------------------------------------------------------------------
